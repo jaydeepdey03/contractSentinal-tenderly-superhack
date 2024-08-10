@@ -12,7 +12,8 @@ import { tenderlyFund } from "../scripts/tenderly-fund";
  * @param hre HardhatRuntimeEnvironment object.
  */
 const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  /*
+  try {
+    /*
     On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
 
     When deploying to live networks (e.g `yarn deploy --network sepolia`), the deployer account
@@ -22,26 +23,30 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     with a random private key in the .env file (then used on hardhat.config.ts)
     You can run the `yarn account` command to check your balance in every network.
   */
-  const { deployer } = await hre.getNamedAccounts();
-  console.log("Deploying YourContract with the account:", deployer);
-  const { deploy } = hre.deployments;
+    const { deployer } = await hre.getNamedAccounts();
+    console.log("Deploying YourContract with the account:", deployer);
+    const { deploy } = hre.deployments;
 
-  await tenderlyFund(deployer);
+    await tenderlyFund(deployer);
 
 
-  const contractFactory = await hre.ethers.getContractFactory("YourContract")
-  const contract = await contractFactory.deploy()
-  await contract.waitForDeployment()
+    const contractFactory = await hre.ethers.getContractFactory("JaydeepContract")
+    const contract = await contractFactory.deploy()
+    await contract.waitForDeployment()
 
-  // await deploy("YourContract", {
-  //   from: deployer,
-  //   args: [deployer],
-  //   log: true,
-  // });
+    // await deploy("YourContract", {
+    //   from: deployer,
+    //   args: [deployer],
+    //   log: true,
+    // });
 
-  // // Get the deployed contract to interact with it after deploying.
-  // const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
-  // console.log("getvalue:", await yourContract.getValue());
+    // // Get the deployed contract to interact with it after deploying.
+    // const yourContract = await hre.ethers.getContract<Contract>("YourContract", deployer);
+    // console.log("getvalue:", await yourContract.getValue());
+  } catch (error) {
+    console.error("Error deploying YourContract:", error);
+  }
+
 };
 
 export default deployYourContract;
