@@ -1,12 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable prettier/prettier */
 const express = require("express");
 const { exec } = require("child_process");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const fs = require('fs');
 const path = require('path');
-
+const axios = require('axios')
+const cors = require('cors')
 app.use(express.json());
 require("dotenv").config();
+
+app.use(cors())
 
 app.post("/deploy", (req, res) => {
     const { contractName } = req.body;
@@ -58,18 +64,18 @@ app.get("/runscript", (req, res) => {
 })
 
 // POST route to create a Solidity file
-app.post('/create-contract', async(req, res) => {
+app.post('/create-contract', async (req, res) => {
     const { fileName, repoOwner, repoName, filePath, branch } = req.body;
 
     try {
-        
+
         if (!fileName) {
             return res.status(400).send("No fileName mentioned")
         }
-        
-        let solidityCode = getContractContent(repoOwner, repoName, filePath, branch)
 
-        if ( !solidityCode) {
+        let solidityCode = await getContractContent(repoOwner, repoName, filePath, branch)
+
+        if (!solidityCode) {
             return res.status(400).send('Unable to fetch Solidity code');
         }
 
@@ -94,27 +100,49 @@ app.post('/create-contract', async(req, res) => {
 });
 
 
+// Function to fetch the content of a contract file from a GitHub repository
+
+app.post("/get-contract", async (req, res) => {
+    const { repoOwner, repoName, filePath, branch } = req.body;
+
+    try {
+        const contractContent = await getContractContent(repoOwner, repoName, filePath, branch);
+
+        if (!contractContent) {
+            return res.status(400).send('Unable to fetch Solidity code');
+        }
+
+        res.status(200).send(contractContent);
+    } catch (err) {
+        console.log('error: ', err.message);
+    }
+}
+);
+
+
 const getContractContent = async (repoOwner, repoName, filePath, branch) => {
-  const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
-  const token = process.env.GITHUB_ACCESS_TOKEN;
+    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;
+    const token = process.env.GITHUB_ACCESS_TOKEN;
 
-  // Define headers with the GitHub token
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/vnd.github.v3+json",
-  };
+    // Define headers with the GitHub token
+    const headers = {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+    };
 
-  try {
-    // Fetch file content from GitHub
-    const response = await axios.get(apiUrl, { headers });
-    
-    // Decode the base64 content
-    const currentContent = Buffer.from(response.data.content, "base64").toString("utf-8");
-    
-    console.log(currentContent, filePath, response.data.sha);
-  } catch (error) {
-    console.error("Error retrieving file content:", error);
-  }
+    try {
+        // Fetch file content from GitHub
+        const response = await axios.get(apiUrl, { headers });
+
+        // Decode the base64 content
+        const currentContent = Buffer.from(response.data.content, "base64").toString("utf-8");
+
+        console.log(currentContent, filePath, response.data.sha);
+
+        return currentContent
+    } catch (error) {
+        console.error("Error retrieving file content:", error);
+    }
 };
 
 
