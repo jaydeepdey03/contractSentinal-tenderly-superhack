@@ -16,10 +16,21 @@ import { auditMarketplaceAbi } from "@/lib/auditmarketplaceabi";
 import axios from "axios";
 import { createPublicClient, custom } from "viem";
 import { baseSepolia } from "viem/chains";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 const CONTRACT_ADDRESS = "0xE50bf3F5909f08998CD573e6361BC4C0902c9fFA";
 
 export default function Audits() {
   const router = useRouter();
+  const [infoOpen, setInfoOpen] = useState(false);
+
   const id = router.query.auditId;
   const { fetchedAccount, walletClient } = useGlobalContextHook();
   const [contractAudits, setContractAudits] = useState<any>();
@@ -32,46 +43,90 @@ export default function Audits() {
 
   useEffect(() => {
     (async function () {
-      if (id) {
-        const data1: any = await publicClient.readContract({
-          address: CONTRACT_ADDRESS,
-          abi: auditMarketplaceAbi,
-          functionName: "getContract",
-          args: [parseInt(id as string)],
-        });
-
-        console.log(data1, "data in audit");
-        if (data1 && (data1 as any)[5]) {
-          const url = (data1 as any)[5] as string;
-          const urlParts = data1[5].split("/");
-          const repoOwner = urlParts[3];
-          const repoName = urlParts[4];
-          const branch = urlParts[6];
-
-          const filePath = url.split(`/${branch}/`)[1];
-
-          console.log(filePath, "filepath");
-
-          // // const { repoOwner, repoName, filePath, branch } = req.body;
-          const data2 = await axios.post(`/api/get-contract`, {
-            repoOwner,
-            repoName,
-            filePath,
-            branch,
+      try {
+        if (id) {
+          const data1: any = await publicClient.readContract({
+            address: CONTRACT_ADDRESS,
+            abi: auditMarketplaceAbi,
+            functionName: "getContract",
+            args: [parseInt(id as string)],
           });
 
-          console.log(data2.data, "data2");
+          console.log(data1, "data in audit");
+          if (data1 && (data1 as any)[5]) {
+            const url = (data1 as any)[5] as string;
+            const urlParts = data1[5].split("/");
+            const repoOwner = urlParts[3];
+            const repoName = urlParts[4];
+            const branch = urlParts[6];
 
-          setContractCode(data2.data.code);
+            const filePath = url.split(`/${branch}/`)[1];
+
+            console.log(filePath, "filepath");
+
+            // // const { repoOwner, repoName, filePath, branch } = req.body;
+            const data2 = await axios.post(`/api/get-contract`, {
+              repoOwner,
+              repoName,
+              filePath,
+              branch,
+            });
+
+            console.log(data2.data, "data2");
+
+            setContractCode(data2.data.code);
+          }
+
+          setContractAudits(data1);
         }
-
-        setContractAudits(data1);
+      } catch (error: any) {
+        console.error(error.message, "error in audit");
       }
     })();
   }, [id]);
 
   return (
     <div className="h-screen bg-background">
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add CI CD to this Contract</DialogTitle>
+            <DialogDescription>
+              <div className="mt-5">
+                <code lang="yaml">
+                  {`
+                      name: Monitor File Changes
+
+on:
+  push:
+    paths:
+      - "contract/Test.sol"
+
+jobs:
+  check-file-changes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Run custom script
+        run: |
+          echo "The file has changed!"
+          cat contract/Test.sol 
+
+          # Hit the backend URL
+          curl -X POST https://my-express-app-f7i6.onrender.com/create-contract \
+               -H "Content-Type: application/json" \
+               -d '{"path": "contract/Test.sol"}'
+                    `}
+                </code>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       <Navbar />
       <main
         className="p-10 h-full w-full"
@@ -113,7 +168,7 @@ export default function Audits() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit">Audit Contract</Button>
-                  {/* <Button onClick={createAttestation}>EAS</Button> */}
+                  <Button onClick={() => setInfoOpen(prev => !prev)}>info</Button>
                 </div>
               </div>
             </CardContent>

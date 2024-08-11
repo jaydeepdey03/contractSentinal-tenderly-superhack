@@ -1,15 +1,11 @@
 import useGlobalContextHook from "@/context/useGlobalContextHook";
-import {Button} from "@/components/ui/button";
-import {Plus} from "lucide-react";
-import {useRouter} from "next/router";
-import {Dispatch, SetStateAction} from "react";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useRouter } from "next/router";
+import { Dispatch, SetStateAction } from "react";
 
-export default function Navbar({
-  setOpen,
-}: {
-  setOpen?: Dispatch<SetStateAction<boolean>>;
-}) {
-  const {fetchedAccount, connectWallet} = useGlobalContextHook();
+export default function Navbar({ setOpen }: { setOpen?: Dispatch<SetStateAction<boolean>> }) {
+  const { fetchedAccount } = useGlobalContextHook();
   const router = useRouter();
   return (
     <nav className="border-b h-[80px] w-full">
@@ -22,27 +18,19 @@ export default function Navbar({
     height={40}
     layout="fixed"
   /> */}
-          <h1 className="ml-2 text-xl font-bold">ChainSentinal</h1>
+          <h1 className="ml-2 text-xl font-bold cursor-pointer" onClick={() => router.push(`/`)}>
+            ChainSentinal
+          </h1>
         </div>
         <div className="flex items-center gap-3">
-          {fetchedAccount ? (
-            <>
-              {fetchedAccount.toString().slice(0, 6) +
-                "..." +
-                fetchedAccount.toString().slice(-4)}
-            </>
-          ) : (
-            <p>
-              <Button onClick={connectWallet}>Connect Wallet</Button>
-            </p>
-          )}
+          {fetchedAccount && <>{fetchedAccount.toString().slice(0, 6) + "..." + fetchedAccount.toString().slice(-4)}</>}
 
           {setOpen && (
             <Button
               className="border-2 rounded-full"
               variant={"outline"}
               // size={"icon"}
-              onClick={() => setOpen((prev) => !prev)}
+              onClick={() => setOpen(prev => !prev)}
             >
               <Plus className="h-5 w-5" />
               <span className="ml-1">Create a new Contract Audit</span>

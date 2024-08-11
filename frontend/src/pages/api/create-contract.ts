@@ -9,20 +9,20 @@ export default async function handler(
 ) {
     if (req.method !== "POST") res.status(405).json({ message: "Method not allowed" });
 
-    const { repoOwner, repoName, filePath, branch } = req.body;
+    const { fileName, repoOwner, repoName, filePath, branch } = req.body;
     try {
 
-        const { data } = await axios.post(`https://my-express-app-f7i6.onrender.com/get-contract`, {
-            repoOwner: "FidalMathew",
-            repoName: "check-ci-cd",
-            branch: "main",
-            filePath: "contract/TestName.sol",
-            fileName: "TestName.sol"
+        const { data } = await axios.post(`https://my-express-app-f7i6.onrender.com/create-contract`, {
+            repoOwner,
+            repoName,
+            branch,
+            filePath,
+            fileName
         })
-        console.log(data, "data in get-contract");
+        console.log(data, "data in create-contract");
         res.status(200).json({ data: data });
     } catch (error: any) {
-        console.error(error.message, "error in get-contract");
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error(error.message, "error in create-contract");
+        res.status(500).json({ message: error.message });
     }
 }
