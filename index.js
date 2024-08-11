@@ -324,6 +324,30 @@ app.post("/get-code", async (req, res) => {
   }
 });
 
+app.post('/get-abi', async (req, res) => {
+  const { contractName } = req.body;
+
+  try {
+    // Define the path where the ABI is stored
+    const filePath = path.join(__dirname, `artifacts/contracts/${contractName}.sol/${contractName}.json`);
+
+    // Read the file content synchronously
+    const data = fs.readFileSync(filePath, 'utf8');
+
+    // Parse the JSON file content
+    const contractJson = JSON.parse(data);
+    const abi = contractJson.abi;
+
+    // Send the ABI back to the frontend
+    res.json({ abi });
+
+  } catch (error) {
+    console.error('An error occurred:', error);
+    res.status(500).send('An error occurred while retrieving the ABI');
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

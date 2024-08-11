@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import useGlobalContextHook from "@/context/useGlobalContextHook";
 import { auditMarketplaceAbi } from "@/lib/auditmarketplaceabi";
 import axios from "axios";
-import { createPublicClient, custom } from "viem";
+import { Abi, createPublicClient, custom, encodeFunctionData, Hex } from "viem";
 import { baseSepolia } from "viem/chains";
 import {
   Dialog,
@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/dialog";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { ethers } from "ethers";
+import { Input } from "@/components/ui/input";
+import { account, jaydeepSepoliaPublicClient } from "@/lib/config";
+import { Field, Form, Formik } from "formik";
 
 const CONTRACT_ADDRESS = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
@@ -57,8 +60,9 @@ export default function Audits() {
     transport: custom(window.ethereum!),
   });
 
-  useEffect(() => {
+  const [functions, setFunctions] = useState<any[]>([]);
 
+  useEffect(() => {
     const extractFunctions = () => {
       console.log(contractCode, "extract functions");
 
@@ -78,9 +82,9 @@ export default function Audits() {
       return functions;
     };
 
-
     if (contractCode) {
       const functions = extractFunctions();
+      let temparr = [];
 
       for (let index = 0; index < functions.length; index++) {
         const code = functions[index];
@@ -96,16 +100,21 @@ export default function Audits() {
 
           console.log("Function Name:", functionName); // Output: getName
           console.log("Arguments:", functionArgs); // Output: address name
+
+          temparr.push({
+            functionName,
+            functionArgs,
+          });
         } else {
           console.log("No match found");
         }
-
       }
 
+      setFunctions(temparr);
     }
+  }, [contractCode]);
 
-  }, [contractCode])
-
+  console.log(functions, "functions hello");
 
   useEffect(() => {
     (async function () {
@@ -115,6 +124,9 @@ export default function Audits() {
       }
     })();
   }, [window]);
+
+  const [deployedContracts, setDeployedContracts] = useState<string[]>([]);
+  const [contractName, setContractName] = useState<string>();
 
   useEffect(() => {
     (async function () {
@@ -129,6 +141,12 @@ export default function Audits() {
 
           console.log(data1, "data in audit");
 
+          const deployedContract = data1[6];
+
+          if (deployedContract) {
+            setDeployedContracts(deployedContract);
+          }
+
           if (data1 && (data1 as any)[5]) {
             const url = (data1 as any)[5] as string;
             const urlParts = data1[5].split("/");
@@ -137,6 +155,11 @@ export default function Audits() {
             const branch = urlParts[6];
 
             const filePath = url.split(`/${branch}/`)[1];
+            const fileName = filePath.split("/")[filePath.split("/").length - 1];
+
+            console.log(fileName, "filename");
+
+            setContractName(fileName);
 
             console.log(filePath, "filepath");
 
@@ -160,6 +183,12 @@ export default function Audits() {
       }
     })();
   }, [id]);
+
+  // useEffect(()=> {
+  //   if(id){
+
+  //   }
+  // }, [id])
 
   const [aiReport, setAIReport] = useState<any[]>([
     {
@@ -301,6 +330,63 @@ export default function Audits() {
   };
 
   console.log(ethersSigner, "ethersSigner from [] ");
+
+  const [contractAbi, setContractAbi] = useState<any>();
+
+  useEffect(() => {
+    (async function () {
+      try {
+        if (contractName) {
+          const contractName1 = contractName!.split(".")[0];
+          const { data } = await axios.post("/api/get-abi", {
+            contractName: contractName1,
+          });
+
+          if (data) {
+            setContractAbi(data.abi);
+          }
+          console.log(data, "data in get-abi");
+        }
+      } catch (error) {
+        console.error(error, "error in get abi");
+      }
+    })();
+  }, [contractName]);
+
+  async function simulateTransaction(functionName: string, args: any[]) {
+    try {
+      if (contractAbi && deployedContracts && deployedContracts.length > 0) {
+        const cd = encodeFunctionData({
+          abi: contractAbi,
+          functionName: functionName,
+          args: args,
+        });
+
+        const simulation = await jaydeepSepoliaPublicClient.request({
+          // @ts-ignore
+          method: "tenderly_simulateTransaction",
+          params: [
+            // transaction object
+            {
+              from: account.address,
+              to: deployedContracts[deployedContracts.length - 1] as Hex,
+              gas: "0x0",
+              gasPrice: "0x0",
+              value: "0x0",
+              data: cd,
+            },
+            // the block
+            "latest",
+          ],
+        });
+        console.log(JSON.stringify(simulation, null, 2), "simulation");
+      }
+    } catch (error) {
+      console.error(error, "error");
+    }
+  }
+
+  console.log(contractAbi, "contractAbi");
 
   return (
     <div className="h-screen bg-background">
@@ -556,18 +642,20 @@ jobs:
                           <div className="flex flex-col gap-4">
                             <div className="flex gap-2">
                               <div
-                                className={`w-5 h-5 ${report.result === "good" ? "text-green-500" : "text-red-500"
-                                  } mt-1 flex items-center gap-2`}
+                                className={`w-5 h-5 ${
+                                  report.result === "good" ? "text-green-500" : "text-red-500"
+                                } mt-1 flex items-center gap-2`}
                               >
                                 <div
                                   className={`
                                   
-                                     ${report.result === "good"
-                                      ? "text-green-500"
-                                      : report.result === "improvement"
-                                        ? "text-yellow-500"
-                                        : report.result === "security" && "text-red-500"
-                                    }
+                                     ${
+                                       report.result === "good"
+                                         ? "text-green-500"
+                                         : report.result === "improvement"
+                                         ? "text-yellow-500"
+                                         : report.result === "security" && "text-red-500"
+                                     }
                                   `}
                                 >
                                   {report.result === "good" ? <Laugh /> : <CircleAlert />}
@@ -575,9 +663,10 @@ jobs:
                                 <p
                                   className={`
                                   
-                                    ${report.result === "good"
-                                      ? "text-green-500"
-                                      : report.result === "improvement"
+                                    ${
+                                      report.result === "good"
+                                        ? "text-green-500"
+                                        : report.result === "improvement"
                                         ? "text-yellow-500"
                                         : report.result === "security" && "text-red-500"
                                     }
@@ -596,7 +685,46 @@ jobs:
                   </div>
                 </CardContent>
               </TabsContent>
-              <TabsContent value="tenderly">Tenderly</TabsContent>
+              <TabsContent value="tenderly">
+                <div className="p-3">
+                  Latest Deployed Contract :{" "}
+                  <span className="font-bold">{deployedContracts[deployedContracts.length - 1]}</span>
+                </div>
+                <div className="grid grid-cols-2 h-full w-full gap-3 p-4">
+                  <div className="w-full h-full flex flex-col gap-3">
+                    {functions &&
+                      functions.length > 0 &&
+                      functions.map((item, index) => (
+                        <div className="flex items-center" key={index}>
+                          <Formik
+                            initialValues={{ args: "" }}
+                            onSubmit={values => simulateTransaction("setName", ["jaydeep"])}
+                          >
+                            <Form>
+                              <Button type="submit" className="rounded-l-md rounded-r-none">
+                                {item.functionName}
+                              </Button>
+                              <Field
+                                as={Input}
+                                name="args"
+                                id="args"
+                                className="rounded-r-md rounded-l-none focus-visible:ring-0"
+                              />
+                            </Form>
+                          </Formik>
+                        </div>
+                      ))}
+                  </div>
+                  <div
+                    className="w-full rounded border-2 overflow-y-auto"
+                    style={{
+                      height: "calc(100vh - 300px)",
+                    }}
+                  >
+                    hello
+                  </div>
+                </div>
+              </TabsContent>
             </Tabs>
           </Card>
         </div>
