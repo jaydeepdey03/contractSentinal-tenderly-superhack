@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowRight, Plus } from "lucide-react";
 import { useRouter } from "next/router";
 import Navbar from "@/components/ui/Navbar";
-import { CopyBlock } from "react-code-blocks";
 import {
   Dialog,
   DialogContent,
