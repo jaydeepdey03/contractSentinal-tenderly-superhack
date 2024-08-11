@@ -24,6 +24,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { ethers } from "ethers";
 
 const CONTRACT_ADDRESS = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
@@ -32,13 +34,21 @@ const schemaUID = "0xe42802fb8300245889f7fc7ade0a4240223b5a5a8dfe6d0976a75accce1
 
 const eas = new EAS(easContractAddress);
 
+const privateKey = process.env.NEXT_PUBLIC_PRIVATE_KEY!;
+
+const provider = new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_ALCHEMY_URL!);
+
+const wallet = new ethers.Wallet(privateKey, provider);
+
+console.log(wallet, "platform signer");
+
 export default function Audits() {
   const router = useRouter();
   const [infoOpen, setInfoOpen] = useState(false);
 
   const id = router.query.auditId;
   console.log(id, "id");
-  const { fetchedAccount, walletClient, ethersSigner } = useGlobalContextHook();
+  const { fetchedAccount, walletClient, ethersSigner, setEthersSigner } = useGlobalContextHook();
   const [contractAudits, setContractAudits] = useState<any>();
   const [contractCode, setContractCode] = useState<string>();
 
@@ -96,6 +106,15 @@ export default function Audits() {
 
   }, [contractCode])
 
+
+  useEffect(() => {
+    (async function () {
+      if (window.ethereum) {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        setEthersSigner(await new ethers.BrowserProvider(window.ethereum).getSigner());
+      }
+    })();
+  }, [window]);
 
   useEffect(() => {
     (async function () {
@@ -157,13 +176,24 @@ export default function Audits() {
     },
   ]);
 
-  async function createAttestation() {
+  type Audit = {
+    functionName: string;
+    result: string;
+    explanation: string;
+  };
+
+  const [reportLoading, setReportLoading] = useState("idle"); // 'ai', 'attestation', 'error', 'idle'
+
+  async function createAttestation(auditArray: Audit[], contractAddress: string, auditId: string) {
     try {
-      if (!ethersSigner) {
-        console.log("No signer found");
+      setReportLoading("attestation");
+
+      if (!privateKey && window.ethereum) {
+        console.log("No signer found and no window ethereum");
         return;
       }
-      await eas.connect(ethersSigner);
+
+      await eas.connect(wallet);
       // const offchain = await eas.getOffchain();
 
       const schemaEncoder = new SchemaEncoder(
@@ -174,21 +204,16 @@ export default function Audits() {
       const encodedData = schemaEncoder.encodeData([
         {
           name: "contract_address",
-          value: "0x145a7774aa7060D983309315cb77c0c4DCe0fF58",
+          value: contractAddress,
           type: "address",
         },
-        { name: "audit_id", value: "helloworld1", type: "string" },
+        { name: "audit_id", value: auditId, type: "string" },
         {
           name: "audit_response",
-          value: [
-            "The contract is susceptible to reentrancy attacks. Recommend adding a mutex to prevent multiple simultaneous calls.",
-            "The contract allows anyone to withdraw Ether, which could lead to loss of funds. Recommend adding access control.",
-            "The contract stores data inefficiently, leading to higher gas costs. Recommend using more compact data structures.",
-            "The contract performs unnecessary computations that can be optimized. Recommend caching intermediate results.",
-            "The contract stores data inefficiently, leading to higher gas costs. Recommend using more compact data structures.",
-            "The contract performs unnecessary computations that can be optimized. Recommend caching intermediate results.",
-            "The contract lacks Natspec documentation, which can make it harder for developers to understand and maintain the code.",
-          ],
+          value: auditArray.map(
+            audit =>
+              `function name: ${audit.functionName},audit result: ${audit.result}, audit explaination: ${audit.explanation}`,
+          ),
           type: "string[]",
         },
         { name: "commit_id", value: "commit1", type: "string" },
@@ -197,9 +222,9 @@ export default function Audits() {
       const tx = await eas.attest({
         schema: schemaUID,
         data: {
-          recipient: "0x3f93B8DCAf29D8B3202347018E23F76e697D8539",
+          recipient: fetchedAccount!,
           expirationTime: BigInt(0),
-          revocable: true, // Be aware that if your schema is not revocable, this MUST be false
+          revocable: false, // Be aware that if your schema is not revocable, this MUST be false
           data: encodedData,
         },
       });
@@ -229,11 +254,18 @@ export default function Audits() {
       // console.log(offchainAttestation, "offchainAttestation");
     } catch (error) {
       console.error(error);
+      setReportLoading("error");
+      setTimeout(() => {
+        setReportLoading("idle");
+      }, 2000);
+    } finally {
+      setReportLoading("idle");
     }
   }
 
   const generateAIReport = async () => {
     try {
+      setReportLoading("ai");
       // if (id) {
       //   const data1: any = await publicClient.readContract({
       //     address: CONTRACT_ADDRESS,
@@ -261,8 +293,14 @@ export default function Audits() {
       // }
     } catch (error: any) {
       console.error(error.message, "error in generateAIReport");
+      setTimeout(() => {
+        setReportLoading("idle");
+      }, 2000);
+      setReportLoading("error");
     }
   };
+
+  console.log(ethersSigner, "ethersSigner from [] ");
 
   return (
     <div className="h-screen bg-background">
@@ -346,9 +384,37 @@ jobs:
                   </Select>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" onClick={generateAIReport}>
-                    Generate report
-                  </Button>
+                  {reportLoading === "idle" ? (
+                    <Button
+                      type="submit"
+                      onClick={async () => {
+                        if (ethersSigner) {
+                          await generateAIReport();
+                        }
+                        if (aiReport && ethersSigner) {
+                          await createAttestation(aiReport, CONTRACT_ADDRESS, id as string);
+                        }
+                      }}
+                    >
+                      Generate report
+                    </Button>
+                  ) : reportLoading === "ai" ? (
+                    <Button type="submit" className="mt-4 " disabled>
+                      <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                      Generating AI Report
+                    </Button>
+                  ) : reportLoading === "attestation" ? (
+                    <Button type="submit" className="mt-4 " disabled>
+                      <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                      Creating attestation
+                    </Button>
+                  ) : (
+                    reportLoading === "error" && (
+                      <Button type="submit" className="mt-4 " disabled>
+                        Error
+                      </Button>
+                    )
+                  )}
                   <Button onClick={() => setInfoOpen(prev => !prev)}>info</Button>
                 </div>
               </div>

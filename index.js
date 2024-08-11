@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const cors = require("cors");
+const { ethers } = require("ethers");
 app.use(express.json());
 require("dotenv").config();
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
@@ -47,7 +48,7 @@ app.post("/deploy", async (req, res) => {
           return res.status(200).send(`logs: ${stderr}`);
         }
         console.log(`Stdout: ${stdout}`);
-        res.send(`Deployment output: ${stdout}`);
+        // res.send(`Deployment output: ${stdout}`);
 
         const inputString = stdout;
 
@@ -57,7 +58,8 @@ app.post("/deploy", async (req, res) => {
         const deployedContractAddress = inputString.match(regex)[0];
 
         const privateKey = process.env.PRIVATE_KEY;
-        const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_URL);
+        const alchemyUrl = process.env.ALCHEMY_URL;
+        const provider = new ethers.JsonRpcProvider(alchemyUrl);
         const contractAddress = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
         // Create a wallet instance
