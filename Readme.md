@@ -22,6 +22,10 @@ We also have an LLM model to find and help in code auditing, and suggestions
 
 We are using Github actions to seemless integration and deployment experience
 
+## 5. Marketplace
+
+We have deployed our smart contract on Base sepolia and created marketplace for users to showcase their projects
+
 ## Getting Started
 
 #### 1. Configure GitHub Actions
