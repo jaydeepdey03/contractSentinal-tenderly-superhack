@@ -324,7 +324,7 @@ app.post("/get-code", async (req, res) => {
   }
 });
 
-app.post('/get-abi', async (req, res) => {
+app.post("/get-abi", async (req, res) => {
   const { contractName } = req.body;
 
   try {
@@ -332,7 +332,7 @@ app.post('/get-abi', async (req, res) => {
     const filePath = path.join(__dirname, `artifacts/contracts/${contractName}.sol/${contractName}.json`);
 
     // Read the file content synchronously
-    const data = fs.readFileSync(filePath, 'utf8');
+    const data = fs.readFileSync(filePath, "utf8");
 
     // Parse the JSON file content
     const contractJson = JSON.parse(data);
@@ -340,13 +340,24 @@ app.post('/get-abi', async (req, res) => {
 
     // Send the ABI back to the frontend
     res.json({ abi });
-
   } catch (error) {
-    console.error('An error occurred:', error);
-    res.status(500).send('An error occurred while retrieving the ABI');
+    console.error("An error occurred:", error);
+    res.status(500).send("An error occurred while retrieving the ABI");
   }
 });
 
+app.post("/ask", async (req, res) => {
+  try {
+    const { simulation } = req.body;
+    const result = await chatSession.sendMessage(
+      `explain this transaction simulation ${simulation} and return the response as {result: "..."}`,
+    );
+
+    res.json(result).status(200);
+  } catch (error) {
+    res.send(error).status(500);
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
