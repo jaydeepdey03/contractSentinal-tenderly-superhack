@@ -1,18 +1,11 @@
 import Image from "next/image";
-import {Inter} from "next/font/google";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
-import {ArrowRight, Plus} from "lucide-react";
-import {useRouter} from "next/router";
+import { Inter } from "next/font/google";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowRight, Plus } from "lucide-react";
+import { useRouter } from "next/router";
 import Navbar from "@/components/ui/Navbar";
 import {
   Dialog,
@@ -22,25 +15,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {useEffect, useState} from "react";
-import {Formik, Form, Field} from "formik";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { Formik, Form, Field } from "formik";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import axios from "axios";
-import {getContract} from "viem";
-import {auditMarketplaceAbi} from "@/lib/auditmarketplaceabi";
+import { getContract } from "viem";
+import { auditMarketplaceAbi } from "@/lib/auditmarketplaceabi";
 
 import useGlobalContextHook from "@/context/useGlobalContextHook";
-import {ReloadIcon} from "@radix-ui/react-icons";
+import { ReloadIcon } from "@radix-ui/react-icons";
 
-const inter = Inter({subsets: ["latin"]});
+const inter = Inter({ subsets: ["latin"] });
 
 const CONTRACT_ADDRESS = "0xE50bf3F5909f08998CD573e6361BC4C0902c9fFA";
 
 export default function Home() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const {fetchedAccount, publicClient, walletClient} = useGlobalContextHook();
+  const { fetchedAccount, publicClient, walletClient } = useGlobalContextHook();
 
   const [loadingState, setLoadingState] = useState("idle"); // 'idle', 'docker', 'chain', 'done', 'error'
   const putItinDocker = async (
@@ -48,22 +41,19 @@ export default function Home() {
     repoName: string,
     branch: string,
     filePath: string,
-    fileName: string
+    fileName: string,
   ) => {
     try {
       setLoadingState("docker");
-      const {data} = await axios.post(
-        `https://my-express-app-f7i6.onrender.com/create-contract`,
-        {
-          // const { fileName, repoOwner, repoName, filePath, branch } = req.body;
+      const { data } = await axios.post(`https://my-express-app-f7i6.onrender.com/create-contract`, {
+        // const { fileName, repoOwner, repoName, filePath, branch } = req.body;
 
-          fileName,
-          repoOwner,
-          repoName,
-          branch,
-          filePath,
-        }
-      );
+        fileName,
+        repoOwner,
+        repoName,
+        branch,
+        filePath,
+      });
       console.log(data, "data in putItinDocker");
     } catch (error: any) {
       console.error(error.message, "error in putItinDocker");
@@ -82,20 +72,11 @@ export default function Home() {
     branch: string,
     filePath: string,
     fileName: string,
-    githubLink: string
+    githubLink: string,
   ) => {
     try {
       setLoadingState("chain");
-      if (
-        !repoOwner ||
-        !repoName ||
-        !branch ||
-        !filePath ||
-        !fileName ||
-        !githubLink ||
-        !fetchedAccount
-      )
-        return;
+      if (!repoOwner || !repoName || !branch || !filePath || !fileName || !githubLink || !fetchedAccount) return;
       // const {data} = await axios.post(
       //   `https://my-express-app-f7i6.onrender.com/get-contract`,
       //   {
@@ -166,9 +147,9 @@ export default function Home() {
             <DialogTitle>Create a new Contract Audit</DialogTitle>
             <DialogDescription>
               <Formik
-                initialValues={{githubLink: ""}}
-                onSubmit={(values) => {
-                  const {githubLink} = values;
+                initialValues={{ githubLink: "" }}
+                onSubmit={values => {
+                  const { githubLink } = values;
                   const urlParts = githubLink.split("/");
 
                   const repoOwner = urlParts[3];
@@ -187,29 +168,15 @@ export default function Home() {
 
                     // })
 
-                    await getContractAndPutitOnChain(
-                      repoOwner,
-                      repoName,
-                      branch,
-                      filePath,
-                      fileName,
-                      githubLink
-                    );
+                    await getContractAndPutitOnChain(repoOwner, repoName, branch, filePath, fileName, githubLink);
                   })();
                 }}
               >
-                {(formik) => (
+                {formik => (
                   <Form>
                     <div className="mt-4 flex gap-3 flex-col">
-                      <Label htmlFor="githubLink">
-                        Enter the Github link of the contract directory
-                      </Label>
-                      <Field
-                        className="focus-visible:ring-0"
-                        as={Input}
-                        name="githubLink"
-                        id="githubLink"
-                      />
+                      <Label htmlFor="githubLink">Enter the Github link of the contract directory</Label>
+                      <Field className="focus-visible:ring-0" as={Input} name="githubLink" id="githubLink" />
                     </div>
                     {loadingState === "idle" ? (
                       <Button type="submit" className="mt-4 w-full">
@@ -261,8 +228,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent className="flex-1">
                   <p className="text-sm text-muted-foreground">
-                    This is a ERC20 contract, the contract does minting and
-                    burning of tokens.
+                    This is a ERC20 contract, the contract does minting and burning of tokens.
                   </p>
                 </CardContent>
                 <CardFooter className="mb-4">

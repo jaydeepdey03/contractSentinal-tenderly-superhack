@@ -1,76 +1,74 @@
 // https://base-sepolia.easscan.org/schema/view/0xe42802fb8300245889f7fc7ade0a4240223b5a5a8dfe6d0976a75accce17e556
 // 0x145a7774aa7060D983309315cb77c0c4DCe0fF58
-import {Button} from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import {Label} from "@/components/ui/label";
-import {Textarea} from "@/components/ui/textarea";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {CircleAlert, InfoIcon, Plus, SlidersVerticalIcon} from "lucide-react";
-import {useRouter} from "next/router";
-import {EAS, SchemaEncoder} from "@ethereum-attestation-service/eas-sdk";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { CircleAlert, InfoIcon, Plus, SlidersVerticalIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/ui/Navbar";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import useGlobalContextHook from "@/context/useGlobalContextHook";
-import {auditMarketplaceAbi} from "@/lib/auditmarketplaceabi";
+import { auditMarketplaceAbi } from "@/lib/auditmarketplaceabi";
 import axios from "axios";
+import { createPublicClient, custom } from "viem";
+import { baseSepolia } from "viem/chains";
 const CONTRACT_ADDRESS = "0xE50bf3F5909f08998CD573e6361BC4C0902c9fFA";
 
 export default function Audits() {
   const router = useRouter();
   const id = router.query.auditId;
-  const {fetchedAccount, publicClient, walletClient} = useGlobalContextHook();
+  const { fetchedAccount, walletClient } = useGlobalContextHook();
   const [contractAudits, setContractAudits] = useState<any>();
   const [contractCode, setContractCode] = useState<string>();
 
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: custom(window.ethereum!),
+  });
+
   useEffect(() => {
     (async function () {
-      if (publicClient) {
-        const data = await publicClient.readContract({
+      if (id) {
+        const data1: any = await publicClient.readContract({
           address: CONTRACT_ADDRESS,
           abi: auditMarketplaceAbi,
           functionName: "getContract",
-          args: [id],
+          args: [parseInt(id as string)],
         });
 
-        if (data[5]) {
-          const urlParts = data[5].split("/");
-
+        console.log(data1, "data in audit");
+        if (data1 && (data1 as any)[5]) {
+          const url = (data1 as any)[5] as string;
+          const urlParts = data1[5].split("/");
           const repoOwner = urlParts[3];
           const repoName = urlParts[4];
           const branch = urlParts[6];
-          const fileName = urlParts[urlParts.length - 1];
 
-          const data1 = await axios.post(
-            `https://my-express-app-f7i6.onrender.com/get-contract`,
-            {
-              fileName,
-              repoOwner,
-              repoName,
-              branch,
-            }
-          );
+          const filePath = url.split(`/${branch}/`)[1];
 
-          setContractCode(data1.data);
+          console.log(filePath, "filepath");
+
+          // // const { repoOwner, repoName, filePath, branch } = req.body;
+          const data2 = await axios.post(`/api/get-contract`, {
+            repoOwner,
+            repoName,
+            filePath,
+            branch,
+          });
+
+          console.log(data2.data, "data2");
+
+          setContractCode(data2.data.code);
         }
 
-        console.log(data, "data in audit");
-        setContractAudits(data);
+        setContractAudits(data1);
       }
     })();
-  }, []);
+  }, [id]);
 
   return (
     <div className="h-screen bg-background">
@@ -86,8 +84,7 @@ export default function Audits() {
             <CardHeader>
               <CardTitle>Audit Smart Contract</CardTitle>
               <CardDescription>
-                Analyze your smart contract for potential vulnerabilities and
-                optimization opportunities.
+                Analyze your smart contract for potential vulnerabilities and optimization opportunities.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -143,9 +140,7 @@ export default function Audits() {
               <TabsContent value="audit">
                 <CardHeader>
                   <CardTitle>Audit Report</CardTitle>
-                  <CardDescription>
-                    Review the detailed analysis of your smart contract.
-                  </CardDescription>
+                  <CardDescription>Review the detailed analysis of your smart contract.</CardDescription>
                 </CardHeader>
                 <CardContent className="overflow-y-auto">
                   <div className="space-y-4">
@@ -155,25 +150,19 @@ export default function Audits() {
                         <li className="flex items-start gap-2">
                           <CircleAlert className="w-5 h-5 text-red-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Reentrancy Vulnerability
-                            </p>
+                            <p className="font-medium">Reentrancy Vulnerability</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract is susceptible to reentrancy attacks.
-                              Recommend adding a mutex to prevent multiple
-                              simultaneous calls.
+                              The contract is susceptible to reentrancy attacks. Recommend adding a mutex to prevent
+                              multiple simultaneous calls.
                             </p>
                           </div>
                         </li>
                         <li className="flex items-start gap-2">
                           <CircleAlert className="w-5 h-5 text-red-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Unprotected Ether Withdrawal
-                            </p>
+                            <p className="font-medium">Unprotected Ether Withdrawal</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract allows anyone to withdraw Ether,
-                              which could lead to loss of funds. Recommend
+                              The contract allows anyone to withdraw Ether, which could lead to loss of funds. Recommend
                               adding access control.
                             </p>
                           </div>
@@ -186,25 +175,19 @@ export default function Audits() {
                         <li className="flex items-start gap-2">
                           <SlidersVerticalIcon className="w-5 h-5 text-yellow-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Inefficient Storage Usage
-                            </p>
+                            <p className="font-medium">Inefficient Storage Usage</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract stores data inefficiently, leading to
-                              higher gas costs. Recommend using more compact
-                              data structures.
+                              The contract stores data inefficiently, leading to higher gas costs. Recommend using more
+                              compact data structures.
                             </p>
                           </div>
                         </li>
                         <li className="flex items-start gap-2">
                           <SlidersVerticalIcon className="w-5 h-5 text-yellow-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Unnecessary Computations
-                            </p>
+                            <p className="font-medium">Unnecessary Computations</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract performs unnecessary computations
-                              that can be optimized. Recommend caching
+                              The contract performs unnecessary computations that can be optimized. Recommend caching
                               intermediate results.
                             </p>
                           </div>
@@ -217,25 +200,19 @@ export default function Audits() {
                         <li className="flex items-start gap-2">
                           <SlidersVerticalIcon className="w-5 h-5 text-yellow-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Inefficient Storage Usage
-                            </p>
+                            <p className="font-medium">Inefficient Storage Usage</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract stores data inefficiently, leading to
-                              higher gas costs. Recommend using more compact
-                              data structures.
+                              The contract stores data inefficiently, leading to higher gas costs. Recommend using more
+                              compact data structures.
                             </p>
                           </div>
                         </li>
                         <li className="flex items-start gap-2">
                           <SlidersVerticalIcon className="w-5 h-5 text-yellow-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Unnecessary Computations
-                            </p>
+                            <p className="font-medium">Unnecessary Computations</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract performs unnecessary computations
-                              that can be optimized. Recommend caching
+                              The contract performs unnecessary computations that can be optimized. Recommend caching
                               intermediate results.
                             </p>
                           </div>
@@ -248,13 +225,10 @@ export default function Audits() {
                         <li className="flex items-start gap-2">
                           <InfoIcon className="w-5 h-5 text-blue-500 mt-1" />
                           <div>
-                            <p className="font-medium">
-                              Lack of Natspec Documentation
-                            </p>
+                            <p className="font-medium">Lack of Natspec Documentation</p>
                             <p className="text-muted-foreground text-sm">
-                              The contract lacks Natspec documentation, which
-                              can make it harder for developers to understand
-                              and maintain the code.
+                              The contract lacks Natspec documentation, which can make it harder for developers to
+                              understand and maintain the code.
                             </p>
                           </div>
                         </li>

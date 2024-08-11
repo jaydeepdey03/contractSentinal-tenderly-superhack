@@ -1,15 +1,9 @@
-import {createContext, ReactNode} from "react";
-import {usePrivy, useWallets} from "@privy-io/react-auth";
-import {useEffect, useState} from "react";
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  EIP1193Provider,
-  Hex,
-} from "viem";
-import {baseSepolia} from "viem/chains";
-import {ethers} from "ethers";
+import { createContext, ReactNode } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useEffect, useState } from "react";
+import { createPublicClient, createWalletClient, custom, EIP1193Provider, Hex } from "viem";
+import { baseSepolia } from "viem/chains";
+import { ethers } from "ethers";
 
 export const GlobalContext = createContext({
   fetchedAccount: null as Hex | null,
@@ -19,11 +13,7 @@ export const GlobalContext = createContext({
   publicClient: undefined as any,
 });
 
-export default function GlobalContextProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function GlobalContextProvider({ children }: { children: ReactNode }) {
   const [fetchedAccount, setFetchAccount] = useState<Hex | null>(null);
   const [ethersSigner, setEthersSigner] = useState<any>(null);
 
@@ -56,7 +46,7 @@ export default function GlobalContextProvider({
     try {
       if (window.ethereum) {
         console.log("window.ethereum is present");
-        await window.ethereum.request({method: "eth_requestAccounts"});
+        await window.ethereum.request({ method: "eth_requestAccounts" });
         const [address] = await walletClient.requestAddresses();
         const signer = await ethersProvider.getSigner(address);
         setEthersSigner(signer);
