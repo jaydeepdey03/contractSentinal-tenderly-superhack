@@ -4,13 +4,6 @@ ContractSentinel is a powerful tool designed to streamline CI/CD deployments of 
 
 The backend is hosted on Render and is built using Docker containers, ensuring a scalable and efficient deployment process. Additionally, ContractSentinel offers built-in contract auditing, highlighting security concerns and suggesting improvements where necessary.
 
-## Key Features
-
-- **CI/CD Smart Contract Deployment**: Automate the deployment of your smart contracts to virtual testnets by simply adding a GitHub Actions YAML file.
-- **Tenderly Integration**: Utilize Tenderly's virtual testnets and transaction simulation features for comprehensive contract testing.
-- **Automated Auditing**: Perform security audits on your contracts automatically, with detailed reports on potential vulnerabilities and improvement suggestions.
-- **Backend Powered by Docker**: The platform's backend is hosted on Render and built using Docker containers for seamless scalability and reliability.
-
 ## Key Components of the project
 
 ### 1. Nodejs backend with Docker
