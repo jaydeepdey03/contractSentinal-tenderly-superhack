@@ -25,7 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-const CONTRACT_ADDRESS = "0xE50bf3F5909f08998CD573e6361BC4C0902c9fFA";
+const CONTRACT_ADDRESS = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
 const easContractAddress = "0x4200000000000000000000000000000000000021";
 const schemaUID = "0xe42802fb8300245889f7fc7ade0a4240223b5a5a8dfe6d0976a75accce17e556";
@@ -46,6 +46,56 @@ export default function Audits() {
     chain: baseSepolia,
     transport: custom(window.ethereum!),
   });
+
+  useEffect(() => {
+
+    const extractFunctions = () => {
+      console.log(contractCode, "extract functions");
+
+      // Split the code by the keyword 'function'
+      const parts = contractCode?.split("function");
+
+      // Filter out and re-add the 'function' keyword to valid function blocks
+      const functions = parts!
+        .slice(1) // Skip the first part since it will be before the first 'function' keyword
+        .map(part => "function" + part.split("}")[0] + "}");
+
+      // Print the matched functions
+      functions.forEach((func, index) => {
+        console.log(`Function ${index + 1}:\n${func}\n`);
+      });
+
+      return functions;
+    };
+
+
+    if (contractCode) {
+      const functions = extractFunctions();
+
+      for (let index = 0; index < functions.length; index++) {
+        const code = functions[index];
+
+        const regex = /function\s+(\w+)\(([^)]*)\)/;
+
+        // Apply the regex to extract the function name and arguments
+        const match = code.match(regex);
+
+        if (match) {
+          const functionName = match[1]; // Extracts the function name
+          const functionArgs = match[2]; // Extracts the arguments
+
+          console.log("Function Name:", functionName); // Output: getName
+          console.log("Arguments:", functionArgs); // Output: address name
+        } else {
+          console.log("No match found");
+        }
+
+      }
+
+    }
+
+  }, [contractCode])
+
 
   useEffect(() => {
     (async function () {
@@ -440,20 +490,18 @@ jobs:
                           <div className="flex flex-col gap-4">
                             <div className="flex gap-2">
                               <div
-                                className={`w-5 h-5 ${
-                                  report.result === "good" ? "text-green-500" : "text-red-500"
-                                } mt-1 flex items-center gap-2`}
+                                className={`w-5 h-5 ${report.result === "good" ? "text-green-500" : "text-red-500"
+                                  } mt-1 flex items-center gap-2`}
                               >
                                 <div
                                   className={`
                                   
-                                     ${
-                                       report.result === "good"
-                                         ? "text-green-500"
-                                         : report.result === "improvement"
-                                         ? "text-yellow-500"
-                                         : report.result === "security" && "text-red-500"
-                                     }
+                                     ${report.result === "good"
+                                      ? "text-green-500"
+                                      : report.result === "improvement"
+                                        ? "text-yellow-500"
+                                        : report.result === "security" && "text-red-500"
+                                    }
                                   `}
                                 >
                                   {report.result === "good" ? <Laugh /> : <CircleAlert />}
@@ -461,10 +509,9 @@ jobs:
                                 <p
                                   className={`
                                   
-                                    ${
-                                      report.result === "good"
-                                        ? "text-green-500"
-                                        : report.result === "improvement"
+                                    ${report.result === "good"
+                                      ? "text-green-500"
+                                      : report.result === "improvement"
                                         ? "text-yellow-500"
                                         : report.result === "security" && "text-red-500"
                                     }

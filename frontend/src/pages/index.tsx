@@ -29,7 +29,7 @@ import { baseSepolia } from "viem/chains";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const CONTRACT_ADDRESS = "0x329e2E9D4c6c418570FeF372F0136837fed9BE76";
+const CONTRACT_ADDRESS = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
 export default function Home() {
   const router = useRouter();
