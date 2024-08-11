@@ -5,10 +5,10 @@ const express = require("express");
 const { exec } = require("child_process");
 const app = express();
 const PORT = process.env.PORT || 8000;
-const fs = require('fs');
-const path = require('path');
-const axios = require('axios')
-const cors = require('cors')
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
+const cors = require("cors");
 app.use(express.json());
 require("dotenv").config();
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
@@ -32,12 +32,12 @@ const chatSession = model.startChat({
   generationConfig,
 });
 
-app.post("/deploy", (req, res) => {
-  const { contractName } = req.body;
+app.post("/deploy", async (req, res) => {
+  const { contractId, contractName } = req.body;
   try {
     exec(
       `CONTRACT_NAME=${contractName} npx hardhat run contractDeploy/deploy.ts --network virtual_base `,
-      (error, stdout, stderr) => {
+      async (error, stdout, stderr) => {
         if (error) {
           console.error(`Error: ${error.message}`);
           return res.status(500).send(`Error: ${error.message}`);
@@ -48,19 +48,55 @@ app.post("/deploy", (req, res) => {
         }
         console.log(`Stdout: ${stdout}`);
         res.send(`Deployment output: ${stdout}`);
+
+        const inputString = stdout;
+
+        const regex = /0x[a-fA-F0-9]{40}/;
+
+        // Extract the contract address
+        const deployedContractAddress = inputString.match(regex)[0];
+
+        const privateKey = process.env.PRIVATE_KEY;
+        const provider = new ethers.providers.JsonRpcProvider(ALCHEMY_URL);
+        const contractAddress = "0x329e2E9D4c6c418570FeF372F0136837fed9BE76";
+
+        // Create a wallet instance
+        const wallet = new ethers.Wallet(privateKey, provider);
+
+        // ABI of the AuditMarketplace contract
+        const abi = [
+          // Only include the function signature you want to interact with
+          "function pushDeployedContract(uint256 _contractId, address _deployedAddress) public",
+        ];
+
+        // Create a contract instance
+        const auditMarketplaceContract = new ethers.Contract(contractAddress, abi, wallet);
+
+        try {
+          const tx = await auditMarketplaceContract.pushDeployedContract(contractId, deployedContractAddress);
+          console.log("Transaction submitted: ", tx.hash);
+
+          // Wait for the transaction to be confirmed
+          const receipt = await tx.wait();
+          console.log("Transaction confirmed: ", receipt);
+
+          res.json(receipt).status(200);
+        } catch (error) {
+          console.error("Error performing transaction:", error);
+          res.json(error).status(500);
+        }
       },
     );
   } catch (err) {
     console.log("error in deploy: ", err);
     res.status(500).json({
       error: err.message,
-    })
+    });
   }
 });
 
 app.get("/runscript", (req, res) => {
   try {
-
     exec(
       `tenderly login --access-key ${process.env.TENDERLY_ACCESS_TOKEN} --authentication-method access-key`,
       (error, stdout, stderr) => {
@@ -74,16 +110,15 @@ app.get("/runscript", (req, res) => {
         }
         console.log(`Stdout: ${stdout}`);
         res.send(`Deployment output: ${stdout}`);
-      }
+      },
     );
   } catch (err) {
-    console.log('error in runscript: ', err);
+    console.log("error in runscript: ", err);
     res.status(500).json({
       error: err.message,
-    })
+    });
   }
-})
-
+});
 
 // POST route to create a Solidity file
 app.post("/create-contract", async (req, res) => {
@@ -117,7 +152,7 @@ app.post("/create-contract", async (req, res) => {
     console.log("error in create contract: ", err);
     res.status(500).json({
       error: err.message,
-    })
+    });
   }
 });
 
