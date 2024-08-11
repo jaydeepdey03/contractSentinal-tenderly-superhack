@@ -57,6 +57,9 @@
     "dotenv": "^16.0.3",
     "envfile": "^6.18.0",
     "express": "^4.19.2",
-    "qrcode": "^1.5.1"
+    "qrcode": "^1.5.1",
+    "react-code-block": "^1.0.0",
+    "react-code-blocks": "^0.1.6",
+    "react-syntax-highlighter": "^15.5.0"
   }
 }

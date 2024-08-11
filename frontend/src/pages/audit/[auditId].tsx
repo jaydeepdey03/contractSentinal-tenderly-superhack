@@ -5,12 +5,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { BadgeX, CircleAlert, InfoIcon, Laugh, Plus, SlidersVerticalIcon, SquareFunction } from "lucide-react";
+import { BadgeX, CircleAlert, Cloud, InfoIcon, Laugh, Plus, SlidersVerticalIcon, SquareFunction } from "lucide-react";
 import { useRouter } from "next/router";
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from "@/components/ui/Navbar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useGlobalContextHook from "@/context/useGlobalContextHook";
 import { auditMarketplaceAbi } from "@/lib/auditmarketplaceabi";
 import axios from "axios";
@@ -29,6 +29,8 @@ import { ethers } from "ethers";
 import { Input } from "@/components/ui/input";
 import { account, jaydeepSepoliaPublicClient } from "@/lib/config";
 import { Field, Form, Formik } from "formik";
+import { CODE_SNIPPETS, Language } from "@/lib/constants";
+import CodeEditor from "@/components/ui/CodeEditor";
 
 const CONTRACT_ADDRESS = "0xfb3eb41E32CB08965e7FFE95FFD9Bb01D1d631d8";
 
@@ -47,6 +49,15 @@ console.log(wallet, "platform signer");
 
 export default function Audits() {
   const router = useRouter();
+
+  const [language] = useState<Language>("python");
+  const editorRef = useRef(null);
+
+  const onMount = (editor: any) => {
+    editorRef.current = editor;
+    editor.focus();
+  };
+
   const [infoOpen, setInfoOpen] = useState(false);
 
   const id = router.query.auditId;
@@ -128,6 +139,8 @@ export default function Audits() {
   const [deployedContracts, setDeployedContracts] = useState<string[]>([]);
   const [contractName, setContractName] = useState<string>();
 
+  const [auditDetails, setAuditDetails] = useState<any>({});
+
   useEffect(() => {
     (async function () {
       try {
@@ -156,6 +169,16 @@ export default function Audits() {
 
             const filePath = url.split(`/${branch}/`)[1];
             const fileName = filePath.split("/")[filePath.split("/").length - 1];
+
+            // push all the data to the auditDetails
+            setAuditDetails({
+              repoOwner,
+              repoName,
+              branch,
+              filePath,
+              fileName: fileName.split(".")[0],
+              contractName: fileName.split(".")[0],
+            });
 
             console.log(fileName, "filename");
 
@@ -191,18 +214,18 @@ export default function Audits() {
   // }, [id])
 
   const [aiReport, setAIReport] = useState<any[]>([
-    {
-      functionName: "getName",
-      result: "good",
-      explanation:
-        "The function is a simple getter function that returns the address passed as an argument. It does not modify any state and is purely functional. There are no security issues or areas for improvement in this code.",
-    },
-    {
-      functionName: "setName",
-      result: "improvement",
-      explanation:
-        "The function lacks an event to log the name change, which can be beneficial for auditing and tracking purposes. It is recommended to add an event like `NameChanged(string newName)` to emit the new name when it's set.",
-    },
+    // {
+    //   functionName: "getName",
+    //   result: "good",
+    //   explanation:
+    //     "The function is a simple getter function that returns the address passed as an argument. It does not modify any state and is purely functional. There are no security issues or areas for improvement in this code.",
+    // },
+    // {
+    //   functionName: "setName",
+    //   result: "improvement",
+    //   explanation:
+    //     "The function lacks an event to log the name change, which can be beneficial for auditing and tracking purposes. It is recommended to add an event like `NameChanged(string newName)` to emit the new name when it's set.",
+    // },
   ]);
 
   type Audit = {
@@ -212,6 +235,7 @@ export default function Audits() {
   };
 
   const [reportLoading, setReportLoading] = useState("idle"); // 'ai', 'attestation', 'error', 'idle'
+  const [attestationUID, setAttestationUID] = useState<string>();
 
   async function createAttestation(auditArray: Audit[], contractAddress: string, auditId: string) {
     try {
@@ -259,6 +283,7 @@ export default function Audits() {
       });
 
       const newAttestationUID = await tx.wait();
+      setAttestationUID(newAttestationUID);
       console.log("New attestation UID:", newAttestationUID);
 
       // const offchainAttestation = await offchain.signOffchainAttestation(
@@ -295,31 +320,31 @@ export default function Audits() {
   const generateAIReport = async () => {
     try {
       setReportLoading("ai");
-      // if (id) {
-      //   const data1: any = await publicClient.readContract({
-      //     address: CONTRACT_ADDRESS,
-      //     abi: auditMarketplaceAbi,
-      //     functionName: "getContract",
-      //     args: [parseInt(id as string)],
-      //   });
-      //   console.log(data1, "data in audit");
-      //   if (data1 && (data1 as any)[5]) {
-      //     const url = (data1 as any)[5] as string;
-      //     const urlParts = data1[5].split("/");
-      //     const repoOwner = urlParts[3];
-      //     const repoName = urlParts[4];
-      //     const branch = urlParts[6];
-      //     const filePath = url.split(`/${branch}/`)[1];
-      //     const data2 = await axios.post(`/api/generate-report`, {
-      //       repoOwner,
-      //       repoName,
-      //       filePath,
-      //       branch,
-      //     });
-      //     console.log(data2.data, "ai report");
-      //     setAIReport(data2.data.data);
-      //   }
-      // }
+      if (id) {
+        const data1: any = await publicClient.readContract({
+          address: CONTRACT_ADDRESS,
+          abi: auditMarketplaceAbi,
+          functionName: "getContract",
+          args: [parseInt(id as string)],
+        });
+        console.log(data1, "data in audit");
+        if (data1 && (data1 as any)[5]) {
+          const url = (data1 as any)[5] as string;
+          const urlParts = data1[5].split("/");
+          const repoOwner = urlParts[3];
+          const repoName = urlParts[4];
+          const branch = urlParts[6];
+          const filePath = url.split(`/${branch}/`)[1];
+          const data2 = await axios.post(`/api/generate-report`, {
+            repoOwner,
+            repoName,
+            filePath,
+            branch,
+          });
+          console.log(data2.data, "ai report");
+          setAIReport(data2.data.data);
+        }
+      }
     } catch (error: any) {
       console.error(error.message, "error in generateAIReport");
       setTimeout(() => {
@@ -353,6 +378,8 @@ export default function Audits() {
     })();
   }, [contractName]);
 
+  const [functionAIResponse, setFunctionAIResponse] = useState<any[]>([]);
+
   async function simulateTransaction(functionName: string, args: any[]) {
     try {
       if (contractAbi && deployedContracts && deployedContracts.length > 0) {
@@ -380,30 +407,30 @@ export default function Audits() {
           ],
         });
         console.log(JSON.stringify(simulation, null, 2), "simulation");
+
+        const { data } = await axios.post(`/api/ask`, {
+          simulation: JSON.stringify(simulation, null, 2),
+        });
+
+        setFunctionAIResponse(data.data.response.candidates[0].content.parts[0].text.result);
+        console.log(data.data.response.candidates[0].content.parts[0].text, "data in ask");
       }
     } catch (error) {
       console.error(error, "error");
     }
   }
 
-  console.log(contractAbi, "contractAbi");
+  const [value, setValue] = useState<string | undefined>(CODE_SNIPPETS["yaml"]);
 
-  return (
-    <div className="h-screen bg-background">
-      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add CI CD to this Contract</DialogTitle>
-            <DialogDescription>
-              <div className="mt-5">
-                <code lang="yaml">
-                  {`
-                      name: Monitor File Changes
+  useEffect(() => {
+    if (auditDetails && id) {
+      setValue(`
+name: Monitor File Changes
 
 on:
   push:
     paths:
-      - "contract/Test.sol"
+      - "${auditDetails.filePath}"
 
 jobs:
   check-file-changes:
@@ -416,15 +443,76 @@ jobs:
       - name: Run custom script
         run: |
           echo "The file has changed!"
-          cat contract/Test.sol 
+          cat ${auditDetails.filePath}
 
           # Hit the backend URL
           curl -X POST https://my-express-app-f7i6.onrender.com/create-contract \
                -H "Content-Type: application/json" \
-               -d '{"path": "contract/Test.sol"}'
-                    `}
-                </code>
+               -d '{"repoOwner": "${auditDetails.repoOwner}","repoName": "${auditDetails.repoName}","branch": "${auditDetails.branch}","filePath": "${auditDetails.filePath}","fileName": "${auditDetails.fileName}"}'
+
+          echo "Contract created"
+          curl -X POST https://my-express-app-f7i6.onrender.com/deploy \
+               -H "Content-Type: application/json" \
+               -d '{"contractName": "${auditDetails.contractName}", "contractId": "${id}"}'
+
+          echo "Contract deployed"
+      `);
+    }
+  }, [auditDetails, id, setValue]);
+
+  console.log(functionAIResponse, "functionAIResponse");
+
+  return (
+    <div className="h-screen bg-background">
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent className="w-[20000px]">
+          <DialogHeader>
+            <DialogTitle>Add CI CD to this Contract</DialogTitle>
+            <DialogDescription className="">
+              {/* <code lang="yaml"></code> */}
+
+              <div className="bg-white w-full h-[500px] border-2 rounded-xl">
+                <CodeEditor readOnly={true} language={"yaml"} onMount={onMount} value={value} setValue={setValue} />
               </div>
+              {/* <div className="w-[70%] overflow-x-auto">
+                {auditDetails && id && (
+                  <code>
+                    {`
+name: Monitor File Changes
+
+on:
+  push:
+    paths:
+      - "${auditDetails.filePath}"
+
+jobs:
+  check-file-changes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Run custom script
+        run: |
+          echo "The file has changed!"
+          cat ${auditDetails.filePath} 
+
+          # Hit the backend URL
+          curl -X POST https://my-express-app-f7i6.onrender.com/create-contract \
+               -H "Content-Type: application/json" \
+               -d '{"repoOwner": "${auditDetails.repoOwner}","repoName": "${auditDetails.repoName}","branch": "${auditDetails.branch}","filePath": "${auditDetails.filePath}","fileName": "${auditDetails.fileName}"}'
+          
+          echo "Contract created"
+          curl -X POST https://my-express-app-f7i6.onrender.com/deploy \
+               -H "Content-Type: application/json" \
+               -d '{"contractName": "${auditDetails.contractName}", "contractId": "${id}"}'
+
+          echo "Contract deployed"
+          `}
+                  </code>
+                )}
+              </div> */}
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -448,16 +536,19 @@ jobs:
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="contract-code">Contract Code</Label>
+                  <div className="flex justify-between items-center mb-5">
+                    <Label htmlFor="contract-code">Contract Code</Label>
+                    <Button onClick={() => setInfoOpen(prev => !prev)}>Add CI CD</Button>
+                  </div>
                   <Textarea
                     id="contract-code"
                     placeholder="Paste your Solidity code here..."
                     value={contractCode}
-                    className="h-40"
+                    className="h-[400px]"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="blockchain-network">Blockchain Network</Label>
+                  {/* <Label htmlFor="blockchain-network">Blockchain Network</Label>
                   <Select>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a network" />
@@ -467,12 +558,24 @@ jobs:
                       <SelectItem value="solana">Solana</SelectItem>
                       <SelectItem value="polkadot">Polkadot</SelectItem>
                     </SelectContent>
-                  </Select>
+                  </Select> */}
+                  {attestationUID && (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`https://base-sepolia.easscan.org/attestation/view/${attestationUID}`}
+                        target="_blank"
+                        className="text-blue-400"
+                      >
+                        View Attestation
+                      </a>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {reportLoading === "idle" ? (
                     <Button
                       type="submit"
+                      className="w-full"
                       onClick={async () => {
                         if (ethersSigner) {
                           await generateAIReport();
@@ -482,7 +585,7 @@ jobs:
                         }
                       }}
                     >
-                      Generate report
+                      Generate report and Create Attestation
                     </Button>
                   ) : reportLoading === "ai" ? (
                     <Button type="submit" className="mt-4 " disabled>
@@ -501,7 +604,6 @@ jobs:
                       </Button>
                     )
                   )}
-                  <Button onClick={() => setInfoOpen(prev => !prev)}>info</Button>
                 </div>
               </div>
             </CardContent>
@@ -523,6 +625,9 @@ jobs:
                 </TabsTrigger>
                 <TabsTrigger value="tenderly" className="w-full">
                   Tenderly
+                </TabsTrigger>
+                <TabsTrigger value="deployments" className="w-full">
+                  Deployments
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="audit">
@@ -625,6 +730,11 @@ jobs:
                   </div> */}
 
                   <div className="space-y-4">
+                    {aiReport && aiReport.length === 0 && (
+                      <div className="flex items-center gap-2">
+                        <p className="">No AI Report generated yet</p>
+                      </div>
+                    )}
                     {aiReport &&
                       aiReport.length > 0 &&
                       aiReport.map((report, index) => (
@@ -698,7 +808,7 @@ jobs:
                         <div className="flex items-center" key={index}>
                           <Formik
                             initialValues={{ args: "" }}
-                            onSubmit={values => simulateTransaction("setName", ["jaydeep"])}
+                            onSubmit={values => simulateTransaction(item.functionName, values.args.split(","))}
                           >
                             <Form>
                               <Button type="submit" className="rounded-l-md rounded-r-none">
@@ -721,9 +831,31 @@ jobs:
                       height: "calc(100vh - 300px)",
                     }}
                   >
-                    hello
+                    {functionAIResponse && (
+                      <div className="p-3">
+                        <h3 className="text-lg font-medium">AI Response</h3>
+                        <p>{JSON.stringify(functionAIResponse, null, 2)}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </TabsContent>
+              <TabsContent value="deployments">
+                {deployedContracts && deployedContracts.length > 0 && (
+                  <div className="p-3">
+                    <h3 className="text-lg font-medium">Deployed Contracts</h3>
+                    <ul className="space-y-2 mt-2">
+                      {deployedContracts.map((contract, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <Cloud className="w-5 h-5 text-blue-500 mt-1" />
+                          <div>
+                            <p className="font-medium">{contract}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </Card>

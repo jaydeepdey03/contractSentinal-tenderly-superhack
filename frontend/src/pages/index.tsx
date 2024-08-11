@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowRight, Plus } from "lucide-react";
 import { useRouter } from "next/router";
 import Navbar from "@/components/ui/Navbar";
+import { CopyBlock } from "react-code-blocks";
 import {
   Dialog,
   DialogContent,
@@ -273,17 +274,15 @@ export default function Home() {
                   <Card className="h-fit w-full flex flex-col relative">
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle>ERC20 Contract</CardTitle>
-                        <div>
+                        <CardTitle>{item.contractName}</CardTitle>
+                        {/* <div>
                           <Badge>$99</Badge>
-                        </div>
+                        </div> */}
                       </div>
                       {/* <CardDescription>Audited Contract for ERC20</CardDescription> */}
                     </CardHeader>
                     <CardContent className="flex-1">
-                      <p className="text-sm text-muted-foreground">
-                        This is a ERC20 contract, the contract does minting and burning of tokens.
-                      </p>
+                      <p className="text-sm text-muted-foreground">{item.description || ""}</p>
                     </CardContent>
                     <CardFooter className="mb-4">
                       <div className="h-full w-full flex items-center justify-between">
@@ -293,7 +292,7 @@ export default function Home() {
                             <AvatarFallback>CN</AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col ml-2">
-                            <p className="text-sm">Shadcn</p>
+                            <p className="text-sm">{item.author.slice(0, 4) + "..." + item.author.slice(-3)}</p>
                             <p className="text-xs">1 day ago</p>
                           </div>
                         </div>
@@ -303,7 +302,7 @@ export default function Home() {
                           className="group"
                           onClick={() => router.push(`/audit/${index + 1}`)}
                         >
-                          Deploy
+                          View
                           <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 duration-100" />
                         </Button>
                       </div>
