@@ -128,14 +128,20 @@ export default function Home() {
 
   useEffect(() => {
     (async function () {
-      const data = await publicClient.readContract({
-        address: CONTRACT_ADDRESS,
-        abi: auditMarketplaceAbi,
-        functionName: "getAllContracts",
-      });
 
-      console.log(data, "data in useEffect");
-      setContractAudits(data);
+      try {
+        const data = await publicClient.readContract({
+          address: CONTRACT_ADDRESS,
+          abi: auditMarketplaceAbi,
+          functionName: "getAllContracts",
+        });
+
+        console.log(data, "data in useEffect");
+        setContractAudits(data);
+
+      } catch (error) {
+        console.log(error)
+      }
     })();
   }, [loadingState]);
 
