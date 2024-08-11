@@ -60,6 +60,7 @@ export default function GlobalContextProvider({ children }: { children: ReactNod
 
         // if chianid is fine, account is fine, then move to home page
         if (parseInt(chainId, 16) === baseSepolia.id && fetchedAccount) {
+          setEthersSigner(new ethers.BrowserProvider(window.ethereum).getSigner());
           router.push("/");
         }
       }
