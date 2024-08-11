@@ -24,7 +24,7 @@ We are using Github actions to seemless integration and deployment experience
 
 ## 5. Marketplace
 
-We have deployed our smart contract on Base sepolia and created marketplace for users to showcase their projects
+We have deployed our smart contract on Base sepolia and created marketplace for users to showcase their projects, present in `contracts/Marketplace.sol`
 
 ## Getting Started
 
