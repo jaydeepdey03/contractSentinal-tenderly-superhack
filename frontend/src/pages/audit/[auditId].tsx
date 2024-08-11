@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { CircleAlert, InfoIcon, Plus, SlidersVerticalIcon } from "lucide-react";
+import { BadgeX, CircleAlert, InfoIcon, Laugh, Plus, SlidersVerticalIcon, SquareFunction } from "lucide-react";
 import { useRouter } from "next/router";
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +32,7 @@ export default function Audits() {
   const [infoOpen, setInfoOpen] = useState(false);
 
   const id = router.query.auditId;
+  console.log(id, "id");
   const { fetchedAccount, walletClient } = useGlobalContextHook();
   const [contractAudits, setContractAudits] = useState<any>();
   const [contractCode, setContractCode] = useState<string>();
@@ -53,6 +54,7 @@ export default function Audits() {
           });
 
           console.log(data1, "data in audit");
+
           if (data1 && (data1 as any)[5]) {
             const url = (data1 as any)[5] as string;
             const urlParts = data1[5].split("/");
@@ -84,6 +86,53 @@ export default function Audits() {
       }
     })();
   }, [id]);
+
+  const [aiReport, setAIReport] = useState<any[]>([
+    {
+      functionName: "getName",
+      result: "good",
+      explanation:
+        "The function is a simple getter function that returns the address passed as an argument. It does not modify any state and is purely functional. There are no security issues or areas for improvement in this code.",
+    },
+    {
+      functionName: "setName",
+      result: "improvement",
+      explanation:
+        "The function lacks an event to log the name change, which can be beneficial for auditing and tracking purposes. It is recommended to add an event like `NameChanged(string newName)` to emit the new name when it's set.",
+    },
+  ]);
+
+  const generateAIReport = async () => {
+    // try {
+    //   if (id) {
+    //     const data1: any = await publicClient.readContract({
+    //       address: CONTRACT_ADDRESS,
+    //       abi: auditMarketplaceAbi,
+    //       functionName: "getContract",
+    //       args: [parseInt(id as string)],
+    //     });
+    //     console.log(data1, "data in audit");
+    //     if (data1 && (data1 as any)[5]) {
+    //       const url = (data1 as any)[5] as string;
+    //       const urlParts = data1[5].split("/");
+    //       const repoOwner = urlParts[3];
+    //       const repoName = urlParts[4];
+    //       const branch = urlParts[6];
+    //       const filePath = url.split(`/${branch}/`)[1];
+    //       const data2 = await axios.post(`/api/generate-report`, {
+    //         repoOwner,
+    //         repoName,
+    //         filePath,
+    //         branch,
+    //       });
+    //       console.log(data2.data, "ai report");
+    //       setAIReport(data2.data.data);
+    //     }
+    //   }
+    // } catch (error: any) {
+    //   console.error(error.message, "error in generateAIReport");
+    // }
+  };
 
   return (
     <div className="h-screen bg-background">
@@ -167,7 +216,9 @@ jobs:
                   </Select>
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit">Audit Contract</Button>
+                  <Button type="submit" onClick={generateAIReport}>
+                    Generate report
+                  </Button>
                   <Button onClick={() => setInfoOpen(prev => !prev)}>info</Button>
                 </div>
               </div>
@@ -198,7 +249,7 @@ jobs:
                   <CardDescription>Review the detailed analysis of your smart contract.</CardDescription>
                 </CardHeader>
                 <CardContent className="overflow-y-auto">
-                  <div className="space-y-4">
+                  {/* <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-medium">Vulnerabilities</h3>
                       <ul className="space-y-2 mt-2">
@@ -289,6 +340,66 @@ jobs:
                         </li>
                       </ul>
                     </div>
+                  </div> */}
+
+                  <div className="space-y-4">
+                    {aiReport &&
+                      aiReport.length > 0 &&
+                      aiReport.map((report, index) => (
+                        <div key={index} className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-4">
+                              <SquareFunction />
+
+                              <h3 className="text-lg font-medium">
+                                {report.functionName}
+                                {`()`}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            <div className="flex gap-2">
+                              <div
+                                className={`w-5 h-5 ${
+                                  report.result === "good" ? "text-green-500" : "text-red-500"
+                                } mt-1 flex items-center gap-2`}
+                              >
+                                <div
+                                  className={`
+                                  
+                                     ${
+                                       report.result === "good"
+                                         ? "text-green-500"
+                                         : report.result === "improvement"
+                                         ? "text-yellow-500"
+                                         : report.result === "security" && "text-red-500"
+                                     }
+                                  `}
+                                >
+                                  {report.result === "good" ? <Laugh /> : <CircleAlert />}
+                                </div>
+                                <p
+                                  className={`
+                                  
+                                    ${
+                                      report.result === "good"
+                                        ? "text-green-500"
+                                        : report.result === "improvement"
+                                        ? "text-yellow-500"
+                                        : report.result === "security" && "text-red-500"
+                                    }
+                                  `}
+                                >
+                                  {report.result === "good" ? "Good" : "Improvement"}
+                                </p>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-sm">{report.explanation}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </CardContent>
               </TabsContent>
@@ -300,3 +411,19 @@ jobs:
     </div>
   );
 }
+
+/**
+ * 
+ * [
+  {
+    functionName: 'getName',
+    result: 'good',
+    explanation: 'The function is a simple getter function that returns the address passed as an argument. It does not modify any state and is purely functional. There are no security issues or areas for improvement in this code.'
+  },
+  {
+    functionName: 'setName',
+    result: 'improvement',
+    explanation: "The function lacks an event to log the name change, which can be beneficial for auditing and tracking purposes. It is recommended to add an event like `NameChanged(string newName)` to emit the new name when it's set."
+  }
+]
+ */

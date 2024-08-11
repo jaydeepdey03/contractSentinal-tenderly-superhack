@@ -29,7 +29,7 @@ import { baseSepolia } from "viem/chains";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const CONTRACT_ADDRESS = "0xA5Bb5243A32E0EC3e5956e49e3c733564a2A8339";
+const CONTRACT_ADDRESS = "0x1f9d1A06b74D17dA468E9b5107E569ff921EFa99";
 
 export default function Home() {
   const router = useRouter();
@@ -98,6 +98,7 @@ export default function Home() {
         hash,
       });
 
+      setOpen(false);
       const unwatch = publicClient.watchContractEvent({
         address: CONTRACT_ADDRESS,
         abi: auditMarketplaceAbi,
@@ -105,8 +106,9 @@ export default function Home() {
         // args: { from: '0xc961145a54C96E3aE9bAA048c4F4D6b04C13916b' },
         onLogs: (logs: any) => {
           const contractId = Number(logs[0].args.contractId);
-          setOpen(false);
-          router.push(`/audit/${contractId}`);
+          // setOpen(false);
+          // router.push(`/audit/${contractId}`);
+          console.log(contractId, "contractId in getContractAndPutitOnChain");
         },
       });
 
@@ -166,6 +168,8 @@ export default function Home() {
     })();
   }, [window]);
 
+  console.log(contractAudits, "contractAudits");
+
   return (
     <div className="h-screen w-full">
       <Dialog open={open} onOpenChange={setOpen}>
@@ -176,6 +180,7 @@ export default function Home() {
               <Formik
                 initialValues={{ githubLink: "" }}
                 onSubmit={values => {
+                  console.log(values, "values");
                   const { githubLink } = values;
                   const urlParts = githubLink.split("/");
 
@@ -183,7 +188,7 @@ export default function Home() {
                   const repoName = urlParts[4];
                   const branch = urlParts[6];
                   const filePath = urlParts.slice(7).join("/");
-                  const fileName = urlParts[urlParts.length - 1];
+                  const fileName = urlParts[urlParts.length - 1].split(".")[0];
                   (async function () {
                     await putItinDocker(repoOwner, repoName, branch, filePath, fileName);
                     await getContractAndPutitOnChain(repoOwner, repoName, branch, filePath, fileName, githubLink);
@@ -271,7 +276,7 @@ export default function Home() {
                           size="sm"
                           variant={"outline"}
                           className="group"
-                          onClick={() => router.push(`/audit/${index}`)}
+                          onClick={() => router.push(`/audit/${index + 1}`)}
                         >
                           Deploy
                           <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 duration-100" />

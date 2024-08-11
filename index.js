@@ -5,24 +5,16 @@ const express = require("express");
 const { exec } = require("child_process");
 const app = express();
 const PORT = process.env.PORT || 8000;
-<<<<<<< Updated upstream
-const fs = require("fs");
-const path = require("path");
-const axios = require("axios");
-const cors = require("cors");
-=======
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios')
 const cors = require('cors')
->>>>>>> Stashed changes
 app.use(express.json());
 require("dotenv").config();
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
 app.use(cors());
 
 const apiKey = process.env.GEMINI_API_KEY;
-console.log(apiKey);
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const model = genAI.getGenerativeModel({
@@ -41,32 +33,7 @@ const chatSession = model.startChat({
 });
 
 app.post("/deploy", (req, res) => {
-<<<<<<< Updated upstream
   const { contractName } = req.body;
-=======
-    const { contractName } = req.body;
-
-    try {
-        exec(
-            `CONTRACT_NAME=${contractName} npx hardhat run contractDeploy/deploy.ts --network virtual_base`,
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error: ${error.message}`);
-                    return res.status(500).send(`Error: ${error.message}`);
-                }
-                if (stderr) {
-                    console.error(`logs: ${stderr}`);
-                    return res.status(200).send(`logs: ${stderr}`);
-                }
-                console.log(`Stdout: ${stdout}`);
-                res.send(`Deployment output: ${stdout}`);
-            }
-        );
-    } catch (err) {
-        console.log('error: ', err.message);
-    }
->>>>>>> Stashed changes
-
   try {
     exec(
       `CONTRACT_NAME=${contractName} npx hardhat run contractDeploy/deploy.ts --network virtual_base `,
@@ -84,89 +51,39 @@ app.post("/deploy", (req, res) => {
       },
     );
   } catch (err) {
-    console.log("error: ", err.message);
+    console.log("error in deploy: ", err);
+    res.status(500).json({
+      error: err.message,
+    })
   }
 });
 
 app.get("/runscript", (req, res) => {
-<<<<<<< Updated upstream
   try {
+
     exec(
       `tenderly login --access-key ${process.env.TENDERLY_ACCESS_TOKEN} --authentication-method access-key`,
       (error, stdout, stderr) => {
         if (error) {
           console.error(`Error: ${error.message}`);
           return res.status(500).send(`Error: ${error.message}`);
-=======
-    try {
-
-        exec(
-            `tenderly login --access-key ${process.env.TENDERLY_ACCESS_TOKEN} --authentication-method access-key`,
-            (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error: ${error.message}`);
-                    return res.status(500).send(`Error: ${error.message}`);
-                }
-                if (stderr) {
-                    console.error(`logs: ${stderr}`);
-                    return res.status(500).send(`Stderr: ${stderr}`);
-                }
-                console.log(`Stdout: ${stdout}`);
-                res.send(`Deployment output: ${stdout}`);
-            }
-        );
-    } catch (err) {
-        console.log('error: ', err.message);
-    }
-})
-
-// POST route to create a Solidity file
-app.post('/create-contract', async (req, res) => {
-
-    const { fileName, repoOwner, repoName, filePath, branch } = req.body;
-    try {
-
-        if (!fileName) {
-            return res.status(400).send("No fileName mentioned")
->>>>>>> Stashed changes
         }
         if (stderr) {
           console.error(`logs: ${stderr}`);
           return res.status(500).send(`Stderr: ${stderr}`);
         }
-<<<<<<< Updated upstream
         console.log(`Stdout: ${stdout}`);
         res.send(`Deployment output: ${stdout}`);
-      },
+      }
     );
   } catch (err) {
-    console.log("error: ", err.message);
+    console.log('error in runscript: ', err);
+    res.status(500).json({
+      error: err.message,
+    })
   }
-=======
+})
 
-        // Define the contracts directory
-        const contractsDir = path.join(__dirname, 'contracts');
-
-        // Check if the directory exists, if not, create it
-        if (!fs.existsSync(contractsDir)) {
-            fs.mkdirSync(contractsDir, { recursive: true });
-        }
-
-        // Write the Solidity code to the file
-        const filePath1 = path.join(contractsDir, `${fileName}.sol`);
-        fs.writeFileSync(filePath1, solidityCode, 'utf8');
-
-        res.status(201).send(`File ${fileName}.sol has been created in ${contractsDir}`);
-    } catch (err) {
-        console.log('error: ', err.message)
-        res.status(500).json({
-            error: err.message
-        });
-    }
-
-
->>>>>>> Stashed changes
-});
 
 // POST route to create a Solidity file
 app.post("/create-contract", async (req, res) => {
@@ -192,12 +109,15 @@ app.post("/create-contract", async (req, res) => {
     }
 
     // Write the Solidity code to the file
-    const filePath = path.join(contractsDir, `${fileName}.sol`);
-    fs.writeFileSync(filePath, solidityCode, "utf8");
+    const filePath1 = path.join(contractsDir, `${fileName}.sol`);
+    fs.writeFileSync(filePath1, solidityCode, "utf8");
 
     res.status(201).send(`File ${fileName}.sol has been created in ${contractsDir}`);
   } catch (err) {
-    console.log("error: ", err.message);
+    console.log("error in create contract: ", err);
+    res.status(500).json({
+      error: err.message,
+    })
   }
 });
 
@@ -215,7 +135,8 @@ app.post("/get-contract", async (req, res) => {
 
     res.status(200).send(contractContent);
   } catch (err) {
-    console.log("error: ", err.message);
+    console.log("error in get contract: ", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
