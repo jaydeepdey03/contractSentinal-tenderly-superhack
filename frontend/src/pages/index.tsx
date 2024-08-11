@@ -29,7 +29,7 @@ import { baseSepolia } from "viem/chains";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const CONTRACT_ADDRESS = "0x1f9d1A06b74D17dA468E9b5107E569ff921EFa99";
+const CONTRACT_ADDRESS = "0x329e2E9D4c6c418570FeF372F0136837fed9BE76";
 
 export default function Home() {
   const router = useRouter();
@@ -74,10 +74,21 @@ export default function Home() {
     filePath: string,
     fileName: string,
     githubLink: string,
+    contractName: string,
   ) => {
     try {
       setLoadingState("chain");
-      if (!repoOwner || !repoName || !branch || !filePath || !fileName || !githubLink || !fetchedAccount) return;
+      if (
+        !repoOwner ||
+        !repoName ||
+        !branch ||
+        !filePath ||
+        !fileName ||
+        !githubLink ||
+        !contractName ||
+        !fetchedAccount
+      )
+        return;
 
       const data2 = await axios.post(`/api/get-contract`, {
         repoOwner,
@@ -91,7 +102,7 @@ export default function Home() {
         address: CONTRACT_ADDRESS,
         abi: auditMarketplaceAbi,
         functionName: "addContract",
-        args: [data2.data.code, githubLink],
+        args: [data2.data.code, githubLink, contractName],
       });
 
       const tx = await publicClient.waitForTransactionReceipt({
@@ -178,10 +189,10 @@ export default function Home() {
             <DialogTitle>Create a new Contract Audit</DialogTitle>
             <DialogDescription>
               <Formik
-                initialValues={{ githubLink: "" }}
+                initialValues={{ githubLink: "", contractName: "" }}
                 onSubmit={values => {
                   console.log(values, "values");
-                  const { githubLink } = values;
+                  const { githubLink, contractName } = values;
                   const urlParts = githubLink.split("/");
 
                   const repoOwner = urlParts[3];
@@ -191,15 +202,29 @@ export default function Home() {
                   const fileName = urlParts[urlParts.length - 1].split(".")[0];
                   (async function () {
                     await putItinDocker(repoOwner, repoName, branch, filePath, fileName);
-                    await getContractAndPutitOnChain(repoOwner, repoName, branch, filePath, fileName, githubLink);
+                    await getContractAndPutitOnChain(
+                      repoOwner,
+                      repoName,
+                      branch,
+                      filePath,
+                      fileName,
+                      githubLink,
+                      contractName,
+                    );
                   })();
                 }}
               >
                 {formik => (
                   <Form>
                     <div className="mt-4 flex gap-3 flex-col">
-                      <Label htmlFor="githubLink">Enter the Github link of the contract directory</Label>
-                      <Field className="focus-visible:ring-0" as={Input} name="githubLink" id="githubLink" />
+                      <div className="flex justify-start flex-col gap-3">
+                        <Label htmlFor="contractName">Contract Name</Label>
+                        <Field className="focus-visible:ring-0" as={Input} name="contractName" id="contractName" />
+                      </div>
+                      <div className="flex justify-start flex-col gap-3">
+                        <Label htmlFor="githubLink">Enter the Github link of the contract directory</Label>
+                        <Field className="focus-visible:ring-0" as={Input} name="githubLink" id="githubLink" />
+                      </div>
                     </div>
                     {loadingState === "idle" ? (
                       <Button type="submit" className="mt-4 w-full">

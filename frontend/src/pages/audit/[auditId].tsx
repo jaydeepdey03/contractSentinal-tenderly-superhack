@@ -27,13 +27,18 @@ import {
 
 const CONTRACT_ADDRESS = "0xE50bf3F5909f08998CD573e6361BC4C0902c9fFA";
 
+const easContractAddress = "0x4200000000000000000000000000000000000021";
+const schemaUID = "0xe42802fb8300245889f7fc7ade0a4240223b5a5a8dfe6d0976a75accce17e556";
+
+const eas = new EAS(easContractAddress);
+
 export default function Audits() {
   const router = useRouter();
   const [infoOpen, setInfoOpen] = useState(false);
 
   const id = router.query.auditId;
   console.log(id, "id");
-  const { fetchedAccount, walletClient } = useGlobalContextHook();
+  const { fetchedAccount, walletClient, ethersSigner } = useGlobalContextHook();
   const [contractAudits, setContractAudits] = useState<any>();
   const [contractCode, setContractCode] = useState<string>();
 
@@ -102,36 +107,111 @@ export default function Audits() {
     },
   ]);
 
+  async function createAttestation() {
+    try {
+      if (!ethersSigner) {
+        console.log("No signer found");
+        return;
+      }
+      await eas.connect(ethersSigner);
+      // const offchain = await eas.getOffchain();
+
+      const schemaEncoder = new SchemaEncoder(
+        "address contract_address,string audit_id,string[] audit_response,string commit_id",
+      );
+
+      // Cannot read properties of null (reading 'schema')
+      const encodedData = schemaEncoder.encodeData([
+        {
+          name: "contract_address",
+          value: "0x145a7774aa7060D983309315cb77c0c4DCe0fF58",
+          type: "address",
+        },
+        { name: "audit_id", value: "helloworld1", type: "string" },
+        {
+          name: "audit_response",
+          value: [
+            "The contract is susceptible to reentrancy attacks. Recommend adding a mutex to prevent multiple simultaneous calls.",
+            "The contract allows anyone to withdraw Ether, which could lead to loss of funds. Recommend adding access control.",
+            "The contract stores data inefficiently, leading to higher gas costs. Recommend using more compact data structures.",
+            "The contract performs unnecessary computations that can be optimized. Recommend caching intermediate results.",
+            "The contract stores data inefficiently, leading to higher gas costs. Recommend using more compact data structures.",
+            "The contract performs unnecessary computations that can be optimized. Recommend caching intermediate results.",
+            "The contract lacks Natspec documentation, which can make it harder for developers to understand and maintain the code.",
+          ],
+          type: "string[]",
+        },
+        { name: "commit_id", value: "commit1", type: "string" },
+      ]);
+
+      const tx = await eas.attest({
+        schema: schemaUID,
+        data: {
+          recipient: "0x3f93B8DCAf29D8B3202347018E23F76e697D8539",
+          expirationTime: BigInt(0),
+          revocable: true, // Be aware that if your schema is not revocable, this MUST be false
+          data: encodedData,
+        },
+      });
+
+      const newAttestationUID = await tx.wait();
+      console.log("New attestation UID:", newAttestationUID);
+
+      // const offchainAttestation = await offchain.signOffchainAttestation(
+      //   {
+      //     recipient: "0xFD50b031E778fAb33DfD2Fc3Ca66a1EeF0652165",
+      //     // Unix timestamp of when attestation expires. (0 for no expiration)
+      //     expirationTime: BigInt(0),
+      //     // Unix timestamp of current time
+      //     time: BigInt(Math.floor(Date.now() / 1000)),
+      //     revocable: true, // Be aware that if your schema is not revocable, this MUST be false
+
+      //     nonce: BigInt(0),
+      //     schema:
+      //       "0xb16fa048b0d597f5a821747eba64efa4762ee5143e9a80600d0005386edfc995",
+      //     refUID:
+      //       "0x0000000000000000000000000000000000000000000000000000000000000000",
+      //     data: encodedData,
+      //   },
+      //   ethersSigner
+      // );
+
+      // console.log(offchainAttestation, "offchainAttestation");
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   const generateAIReport = async () => {
-    // try {
-    //   if (id) {
-    //     const data1: any = await publicClient.readContract({
-    //       address: CONTRACT_ADDRESS,
-    //       abi: auditMarketplaceAbi,
-    //       functionName: "getContract",
-    //       args: [parseInt(id as string)],
-    //     });
-    //     console.log(data1, "data in audit");
-    //     if (data1 && (data1 as any)[5]) {
-    //       const url = (data1 as any)[5] as string;
-    //       const urlParts = data1[5].split("/");
-    //       const repoOwner = urlParts[3];
-    //       const repoName = urlParts[4];
-    //       const branch = urlParts[6];
-    //       const filePath = url.split(`/${branch}/`)[1];
-    //       const data2 = await axios.post(`/api/generate-report`, {
-    //         repoOwner,
-    //         repoName,
-    //         filePath,
-    //         branch,
-    //       });
-    //       console.log(data2.data, "ai report");
-    //       setAIReport(data2.data.data);
-    //     }
-    //   }
-    // } catch (error: any) {
-    //   console.error(error.message, "error in generateAIReport");
-    // }
+    try {
+      // if (id) {
+      //   const data1: any = await publicClient.readContract({
+      //     address: CONTRACT_ADDRESS,
+      //     abi: auditMarketplaceAbi,
+      //     functionName: "getContract",
+      //     args: [parseInt(id as string)],
+      //   });
+      //   console.log(data1, "data in audit");
+      //   if (data1 && (data1 as any)[5]) {
+      //     const url = (data1 as any)[5] as string;
+      //     const urlParts = data1[5].split("/");
+      //     const repoOwner = urlParts[3];
+      //     const repoName = urlParts[4];
+      //     const branch = urlParts[6];
+      //     const filePath = url.split(`/${branch}/`)[1];
+      //     const data2 = await axios.post(`/api/generate-report`, {
+      //       repoOwner,
+      //       repoName,
+      //       filePath,
+      //       branch,
+      //     });
+      //     console.log(data2.data, "ai report");
+      //     setAIReport(data2.data.data);
+      //   }
+      // }
+    } catch (error: any) {
+      console.error(error.message, "error in generateAIReport");
+    }
   };
 
   return (

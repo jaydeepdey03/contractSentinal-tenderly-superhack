@@ -35,6 +35,11 @@ export const auditMarketplaceAbi = [
                 "internalType": "string",
                 "name": "_githubLink",
                 "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_contractName",
+                "type": "string"
             }
         ],
         "name": "addContract",
@@ -65,6 +70,11 @@ export const auditMarketplaceAbi = [
         ],
         "name": "contracts",
         "outputs": [
+            {
+                "internalType": "string",
+                "name": "contractName",
+                "type": "string"
+            },
             {
                 "internalType": "address",
                 "name": "author",
@@ -101,6 +111,11 @@ export const auditMarketplaceAbi = [
             {
                 "components": [
                     {
+                        "internalType": "string",
+                        "name": "contractName",
+                        "type": "string"
+                    },
+                    {
                         "internalType": "address",
                         "name": "author",
                         "type": "address"
@@ -129,6 +144,11 @@ export const auditMarketplaceAbi = [
                         "internalType": "string",
                         "name": "githubLink",
                         "type": "string"
+                    },
+                    {
+                        "internalType": "address[]",
+                        "name": "contractsDeployed",
+                        "type": "address[]"
                     }
                 ],
                 "internalType": "struct AuditMarketplace.ContractInfo[]",
@@ -181,6 +201,24 @@ export const auditMarketplaceAbi = [
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_contractId",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "_deployedAddress",
+                "type": "address"
+            }
+        ],
+        "name": "pushDeployedContract",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
